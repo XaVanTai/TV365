@@ -433,7 +433,7 @@
     </style>
 </head>
 
-<body class="selection:bg-indigo-500/30">
+<body class="selection:bg-indigo-500/30" onload="startTV365()">
     <div id="toast-container"></div>
 
     <div class="flex flex-col landscape:flex-row h-screen w-screen p-3 gap-3 overflow-hidden box-border">
@@ -2758,9 +2758,29 @@
 
         // Chỉ tải EPG mặc định, không tự động tải danh sách kênh
         window.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => fetchEPG(), 100);
-        });
-    </script>
+    setTimeout(() => fetchEPG(), 100);
+});
+
+async function startTV365() {
+    try {
+
+        const PLAYLIST =
+        "https://raw.githubusercontent.com/hieu-TQS/error/refs/heads/main/error.m3u";
+
+        await loadPredefinedUrl(PLAYLIST);
+
+        const btn = document.querySelector('button[onclick="openAddDialog()"]');
+        if (btn) btn.remove();
+
+        const dialog = document.getElementById("add-dialog");
+        if (dialog) dialog.remove();
+
+    } catch (e) {
+        console.log(e);
+    }
+}
+
+</script>
 </body>
 
 </html>
