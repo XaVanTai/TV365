@@ -2103,6 +2103,29 @@ if (index >= 0) {
 
             // UI Update
             playerOverlay.style.opacity = '0';
+// ===== TV365 Fast Switch =====
+videoPlayer.pause();
+
+if (hlsInstance) {
+    try { hlsInstance.stopLoad(); } catch(e){}
+    try { hlsInstance.detachMedia(); } catch(e){}
+    try { hlsInstance.destroy(); } catch(e){}
+    hlsInstance = null;
+}
+
+if (shakaInstance) {
+    try { shakaInstance.destroy(); } catch(e){}
+    shakaInstance = null;
+}
+
+if (mpegtsInstance) {
+    try { mpegtsInstance.destroy(); } catch(e){}
+    mpegtsInstance = null;
+}
+
+videoPlayer.removeAttribute("src");
+videoPlayer.load();
+// =============================
             loadingOverlay.classList.remove('hidden');
             document.getElementById('quality-selector').classList.add('hidden');
             videoPlayer.classList.remove('is-live');
@@ -2500,10 +2523,10 @@ if (index >= 0) {
             else if (typeof Hls !== 'undefined' && Hls.isSupported() && !isMPD) {
                 hlsInstance = new Hls({
                     enableWorker: false,             // Tắt worker trên Windows để tránh lệch clock âm thanh
-                    lowLatencyMode: false,
-                    backBufferLength: 10,
-                    maxBufferLength: 30,
-                    maxMaxBufferLength: 60,
+                    lowLatencyMode: true,
+                    backBufferLength: 5,
+                    maxBufferLength: 12,
+                    maxMaxBufferLength: 20,
                     maxBufferSize: 60 * 1000 * 1000,
                     manifestLoadingMaxRetry: 10,
                     manifestLoadingRetryDelay: 1000,
@@ -2725,6 +2748,14 @@ if (index >= 0) {
             }
 
             videoPlayer.onplaying = () => {
+
+    loadingOverlay.classList.add('hidden');
+
+    videoPlayer.playbackRate = 1.0;
+
+    try {
+        videoPlayer.currentTime = videoPlayer.currentTime;
+    } catch(e){}
                 loadingOverlay.classList.add('hidden');
 
                 // Kiểm tra nguồn audio đã biết qua domain/đuôi file (cho native/fallback player)
