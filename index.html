@@ -24,7 +24,7 @@
             --panel-bg: rgba(31,42,68,.88);
             --glass-border: rgba(249,115,22,.25);
             --text-main: #ededed;
-            --text-muted: #2dff11;
+            --text-muted: #888888;
         }
 
         body {
@@ -241,7 +241,16 @@
             white-space: nowrap;
         }
 
-        .category-tab.active{
+        
+.category-tab:hover{
+background:#1F2A44 !important;
+border:2px solid #f602cb !important;
+color:#ffffff !important;
+transform:scale(1.05);
+box-shadow:0 0 18px rgba(246,2,203,.45);
+}
+
+.category-tab.active{
 background:#f97316;
 color:#ffffff;
 border:1.5px solid #fff;
@@ -668,7 +677,7 @@ font-weight:700;
                     Thêm Nguồn Phát
                 </h2>
                 <button onclick="closeAddDialog()"
-                    class="text-[#2dff11] hover:text-white transition-colors p-1 rounded-md hover:bg-white/5">
+                    class="text-[#888888] hover:text-white transition-colors p-1 rounded-md hover:bg-white/5">
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
@@ -712,7 +721,7 @@ font-weight:700;
 
             <!-- Input URL -->
             <div class="flex flex-col gap-1.5">
-                <label class="text-[#2dff11] text-[11px] font-medium px-1">Nhập Liên kết URL thủ công</label>
+                <label class="text-[#888888] text-[11px] font-medium px-1">Nhập Liên kết URL thủ công</label>
                 <div class="relative flex w-full group">
                     <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
                         <i data-lucide="link"
@@ -734,7 +743,7 @@ font-weight:700;
 
             <!-- Nút Upload File Local -->
             <div class="flex flex-col gap-1.5 mb-1">
-                <label class="text-[#2dff11] text-[11px] font-medium px-1">Mở File từ máy tính cục bộ</label>
+                <label class="text-[#888888] text-[11px] font-medium px-1">Mở File từ máy tính cục bộ</label>
                 <input type="file" id="file-upload" accept=".m3u,.m3u8,.json" class="hidden"
                     onchange="handleFileUpload(event); closeAddDialog();">
                 <label for="file-upload"
@@ -1383,7 +1392,7 @@ font-weight:700;
 
             groups.forEach(group => {
                 const btn = document.createElement('button');
-                btn.className = `category-tab px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-white/5 ${currentCategory === group ? 'active' : 'bg-white/5 text-muted hover:bg-white/10'}`;
+                btn.className = `category-tab px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-white/5 ${currentCategory === group ? 'active' : 'bg-[#1F2A44] text-white hover:border-[#f602cb] hover:bg-[#1F2A44] hover:text-white'}`;
                 btn.innerText = group;
                 btn.onclick = () => {
                     currentCategory = group;
