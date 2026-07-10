@@ -430,7 +430,46 @@
             width: 0%;
             transition: width 0.3s;
         }
-    </style>
+    
+
+/* ==== TV365 Premium Orange ==== */
+.glass-panel,
+.video-container,
+#epg-panel,
+#add-dialog-content{
+    border:1px solid rgba(249,115,22,.25)!important;
+    box-shadow:0 0 18px rgba(249,115,22,.12),0 10px 30px rgba(0,0,0,.55)!important;
+}
+.channel-item{
+    border:1px solid rgba(249,115,22,.18)!important;
+    border-radius:16px!important;
+}
+.channel-item:hover{
+    border-color:#f97316!important;
+    box-shadow:0 0 16px rgba(249,115,22,.35)!important;
+}
+.channel-item.active{
+    border:2px solid #f97316!important;
+    box-shadow:0 0 20px rgba(249,115,22,.45)!important;
+}
+.category-tab{
+    border:1px solid rgba(249,115,22,.22)!important;
+}
+.category-tab:hover{
+    border-color:#f97316!important;
+    box-shadow:0 0 12px rgba(249,115,22,.25)!important;
+}
+input,select{
+    border:1px solid rgba(249,115,22,.22)!important;
+}
+button{
+    transition:.25s!important;
+}
+button:hover{
+    box-shadow:0 0 12px rgba(249,115,22,.28);
+}
+
+</style>
 </head>
 
 <body class="selection:bg-orange-500/30" onload="startTV365()">
