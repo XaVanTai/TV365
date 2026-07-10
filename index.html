@@ -3036,23 +3036,21 @@ window.addEventListener("load", function () {
 
 const __render = window.renderChannelsExplicit;
 
-window.renderChannelsExplicit = function (channels) {
+setTimeout(function () {
 
-    __render(channels);
+    const list = getChannels();
 
-    setTimeout(function () {
+    if (channelIndex >= list.length) {
+        channelIndex = lastChannelByTab[tabIndex] ?? 0;
+    }
 
-        if (remoteArea === "list") {
+    if (channelIndex >= list.length) {
+        channelIndex = 0;
+    }
 
-            if (channelIndex >= getChannels().length)
-                channelIndex = getChannels().length - 1;
+    updateRemoteFocus();
 
-        }
-
-        updateRemoteFocus();
-
-    }, 50);
-
+}, 50);
 };
 // ================= END REMOTE =================
 </script>
