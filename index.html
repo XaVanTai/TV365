@@ -22,7 +22,7 @@
             --accent-glow: rgba(249, 115, 22, 0.4);
             --bg-deep: #16213E;
             --panel-bg: rgba(31,42,68,.88);
-            --glass-border: rgba(249,115,22,.28);
+            --glass-border: rgba(249,115,22,.25);
             --text-main: #ededed;
             --text-muted: #888888;
         }
@@ -64,14 +64,14 @@
             background: var(--panel-bg);
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
-            border:1.5px solid rgba(249,115,22,.45);
+            border:1.5px solid rgba(249,115,22,.35);
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
         }
 
         .channel-item {
             position: relative;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            border:1.5px solid rgba(249,115,22,.18);
+            border:1.5px solid rgba(249,115,22,.12);
             overflow: hidden;
             z-index: 1;
         }
@@ -84,9 +84,9 @@
 
         /* Premium Active State - Spinning Neon Border */
         .channel-item.active {
-            background:linear-gradient(135deg,#f9c5d5,#fbcfe8,#f4b6d2)!important;
+            background:rgba(249,115,22,.10)!important;
             border-color: transparent !important;
-            box-shadow:0 0 18px rgba(255,255,255,.35);
+            box-shadow:0 0 18px rgba(249,115,22,.25);border:2px solid #f97316;
             transform: translateY(-1px) translateX(2px);
         }
 
@@ -113,7 +113,7 @@
             height: 600%;
             top: -250%;
             left: -250%;
-            background: conic-gradient(transparent 0deg, #ffd6e7 60deg, #ffffff 90deg, #f472b6 120deg, transparent 180deg, transparent 180deg, #ffd6e7 240deg, #ffffff 270deg, #f472b6 300deg, transparent 360deg);
+            background: conic-gradient(transparent 0deg, #f97316 60deg, #ffffff 90deg, #fb923c 120deg, transparent 180deg, transparent 180deg, #f97316 240deg, #ffffff 270deg, #fb923c 300deg, transparent 360deg);
             animation: spin 3.5s linear infinite;
         }
 
@@ -136,7 +136,7 @@
 
         .indicator-bar {
             width: 2px;
-            background:linear-gradient(135deg,#f9c5d5,#fbcfe8,#f4b6d2);color:#4a044e;
+            background: var(--accent);
             border-radius: 1px;
             animation: bounce 0.8s ease-in-out infinite alternate;
         }
@@ -153,7 +153,7 @@
 
         .audio-bar {
             width: 6px;
-            background:linear-gradient(135deg,#f9c5d5,#fbcfe8,#f4b6d2);color:#4a044e;
+            background: var(--accent);
             border-radius: 3px 3px 0 0;
             transform-origin: bottom;
             animation: audio-bar 0.8s ease-in-out infinite alternate;
@@ -241,11 +241,13 @@
             white-space: nowrap;
         }
 
-        .category-tab.active {
-            background:linear-gradient(135deg,#f9c5d5,#fbcfe8,#f4b6d2);color:#4a044e;
-            color: white;
-            box-shadow:0 0 18px rgba(255,255,255,.45);
-        }
+        .category-tab.active{
+background:#f97316;
+color:#111827;
+border:1.5px solid #fff;
+box-shadow:0 0 14px rgba(249,115,22,.45);
+font-weight:700;
+}
 
         .group-icon-rotated {
             transform: rotate(90deg);
@@ -360,7 +362,7 @@
         .toast {
             background: rgba(15, 15, 15, 0.9);
             backdrop-filter: blur(12px);
-            border:1.5px solid rgba(249,115,22,.45);
+            border:1.5px solid rgba(249,115,22,.35);
             border-radius: 12px;
             padding: 12px 16px;
             margin-bottom: 8px;
@@ -426,33 +428,11 @@
 
         .epg-progress-bar {
             height: 100%;
-            background:linear-gradient(135deg,#f9c5d5,#fbcfe8,#f4b6d2);color:#4a044e;
+            background: var(--accent);
             width: 0%;
             transition: width 0.3s;
         }
-    
-.category-tab.active{
-position:relative;
-overflow:hidden;
-}
-.category-tab.active::before,
-.channel-item.active .active-glow::before{
-animation:spin 4s linear infinite!important;
-}
-.category-tab.active::after{
-content:"";
-position:absolute;
-inset:0;
-padding:2px;
-border-radius:inherit;
-background:conic-gradient(#ffd6e7,#f9a8d4,#ffe4ef,#f472b6,#ffd6e7);
--webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
--webkit-mask-composite:xor;
-mask-composite:exclude;
-pointer-events:none;
-}
-
-</style>
+    </style>
 </head>
 
 <body class="selection:bg-orange-500/30" onload="startTV365()">
@@ -473,7 +453,7 @@ pointer-events:none;
                         </div>
                         <div>
                             <h1 class="font-bold text-sm tracking-tight text-white leading-none">
-                                TV365 <span class="text-orange-400"> VIP</span>
+                                TV365 <span class="text-orange-300"> VIP</span>
                             </h1>
                             <span class="text-[9px] text-muted font-medium uppercase tracking-[0.1em] mt-1 block">
                                 Truyền Hình
@@ -482,7 +462,7 @@ pointer-events:none;
                         </div>
                     </div>
                     <button onclick="openAddDialog()"
-                        class="w-8 h-8 flex items-center justify-center rounded-xl bg-white/5 hover:bg-orange-500 hover:text-white border border-white/5 text-orange-400 transition-all active:scale-95"
+                        class="w-8 h-8 flex items-center justify-center rounded-xl bg-white/5 hover:bg-orange-500 hover:text-white border border-white/5 text-orange-300 transition-all active:scale-95"
                         title="Thêm nguồn m3u8">
                         <i data-lucide="plus" class="w-4 h-4"></i>
                     </button>
@@ -490,7 +470,7 @@ pointer-events:none;
 
                 <div class="relative group flex items-center">
                     <i data-lucide="search"
-                        class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-orange-400 transition-colors pointer-events-none z-10"></i>
+                        class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-orange-300 transition-colors pointer-events-none z-10"></i>
                     <input type="text" id="search-input" placeholder="Tìm kiếm kênh..."
                         class="w-full pl-10 pr-9 py-2 bg-black/40 border border-white/5 rounded-2xl text-xs text-white focus:outline-none focus:border-orange-500/40 transition-all placeholder-white/30"
                         oninput="filterChannels()">
@@ -566,7 +546,7 @@ pointer-events:none;
                                 <div
                                     class="relative z-10 bg-[#111] w-16 h-16 sm:w-24 sm:h-24 rounded-full border border-orange-500/30 shadow-[0_0_30px_rgba(249,115,22,0.3)] flex items-center justify-center overflow-hidden">
                                     <i id="audio-visualizer-icon" data-lucide="radio"
-                                        class="w-8 h-8 sm:w-10 sm:h-10 text-orange-400"></i>
+                                        class="w-8 h-8 sm:w-10 sm:h-10 text-orange-300"></i>
                                 </div>
                             </div>
 
@@ -578,7 +558,7 @@ pointer-events:none;
                                 class="text-white text-base sm:text-lg font-semibold tracking-wide mb-1 text-center w-full truncate px-4">
                                 Radio Stream</h3>
                             <p id="audio-visualizer-desc"
-                                class="text-orange-400/80 text-[10px] sm:text-xs uppercase tracking-[0.2em] mb-4 sm:mb-8 font-medium text-center w-full truncate px-4">
+                                class="text-orange-300/80 text-[10px] sm:text-xs uppercase tracking-[0.2em] mb-4 sm:mb-8 font-medium text-center w-full truncate px-4">
                                 Đang phát âm thanh</p>
                             <div class="flex gap-1.5 h-8 sm:h-10 items-end shrink-0">
                                 <div class="audio-bar" style="height: 40%; animation-delay: 0.1s;"></div>
@@ -615,7 +595,7 @@ pointer-events:none;
                         <div
                             class="w-8 h-8 border-2 border-orange-500/30 border-t-indigo-500 rounded-full animate-spin">
                         </div>
-                        <p id="resolve-status" class="hidden text-[10px] text-orange-400/80 mt-3 flex items-center gap-1.5">
+                        <p id="resolve-status" class="hidden text-[10px] text-orange-300/80 mt-3 flex items-center gap-1.5">
                             <span class="inline-block w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"></span>
                             Đang dò link stream...
                         </p>
@@ -626,7 +606,7 @@ pointer-events:none;
                         class="absolute top-0 left-0 w-80 h-full bg-black/85 backdrop-blur-xl border-r border-white/10 flex flex-col pointer-events-auto z-40">
                         <div class="p-4 border-b border-white/5 flex items-center justify-between bg-black/20">
                             <h2 class="text-sm font-bold text-white flex items-center gap-2" title="Lịch Phát Sóng">
-                                <i data-lucide="calendar-days" class="w-4 h-4 text-orange-400 shrink-0"></i>
+                                <i data-lucide="calendar-days" class="w-4 h-4 text-orange-300 shrink-0"></i>
                                 <span id="epg-title" class="truncate max-w-[180px]">Lịch Phát Sóng</span>
                             </h2>
                             <div class="flex items-center gap-1">
@@ -674,7 +654,7 @@ pointer-events:none;
 
             <div class="flex items-center justify-between border-b border-white/5 pb-3">
                 <h2 class="text-white font-semibold text-sm flex items-center gap-2">
-                    <i data-lucide="list-plus" class="w-4 h-4 text-orange-400"></i>
+                    <i data-lucide="list-plus" class="w-4 h-4 text-orange-300"></i>
                     Thêm Nguồn Phát
                 </h2>
                 <button onclick="closeAddDialog()"
@@ -691,7 +671,7 @@ pointer-events:none;
                 <div class="grid grid-cols-2 gap-2">
                     <button onclick="loadPredefinedUrl('https://raw.githubusercontent.com/TV365-VN/TV365-DATA/main/error.m3u')"
                         class="px-3 py-2.5 bg-[#1a1a1a] hover:bg-orange-500/10 border border-white/5 hover:border-orange-500/30 rounded-xl transition-all group flex items-center justify-center">
-                        <span class="text-[12px] font-bold text-white group-hover:text-orange-400 transition-colors">
+                        <span class="text-[12px] font-bold text-white group-hover:text-orange-300 transition-colors">
                             TV
                         </span>
                     </button>
@@ -726,7 +706,7 @@ pointer-events:none;
                 <div class="relative flex w-full group">
                     <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
                         <i data-lucide="link"
-                            class="w-3.5 h-3.5 text-[#666666] group-focus-within:text-orange-400 transition-colors"></i>
+                            class="w-3.5 h-3.5 text-[#666666] group-focus-within:text-orange-300 transition-colors"></i>
                     </div>
                     <input type="text" id="url-input" placeholder="https://domain.com/playlist"
                         class="w-full pl-8 pr-16 py-2.5 bg-[#151515] border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:bg-[#1a1a1a] focus:border-orange-500/50 transition-all placeholder-[#555555]">
@@ -750,7 +730,7 @@ pointer-events:none;
                 <label for="file-upload"
                     class="cursor-pointer flex items-center justify-center gap-2 bg-[#1a1a1a] hover:bg-[#222222] border border-white/10 text-white px-4 py-2.5 text-xs font-medium rounded-xl transition-all w-full group">
                     <i data-lucide="folder-open"
-                        class="w-4 h-4 text-orange-400 group-hover:scale-110 transition-transform"></i>
+                        class="w-4 h-4 text-orange-300 group-hover:scale-110 transition-transform"></i>
                     <span>Tải tệp từ máy (.m3u)</span>
                 </label>
             </div>
@@ -1359,7 +1339,7 @@ pointer-events:none;
                             ${logoHtml}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-xs font-semibold leading-tight truncate ${isPlaying ? 'text-orange-400' : 'text-white/80'}">
+                            <h3 class="text-xs font-semibold leading-tight truncate ${isPlaying ? 'text-orange-300' : 'text-white/80'}">
                                 ${channel.name}
                             </h3>
                             <p class="text-[9px] text-muted mt-0.5 uppercase tracking-tighter">${channel.group || 'Khác'}</p>
@@ -1586,7 +1566,7 @@ pointer-events:none;
                             ${logoHtml}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-xs font-semibold leading-tight truncate ${isPlaying ? 'text-orange-400' : 'text-white/80'}">
+                            <h3 class="text-xs font-semibold leading-tight truncate ${isPlaying ? 'text-orange-300' : 'text-white/80'}">
                                 ${channel.name}
                             </h3>
                             ${currentProgram ? `
@@ -2011,7 +1991,7 @@ pointer-events:none;
 
                 item.innerHTML = `
                         <div class="flex justify-between items-start mb-1">
-                            <span class="text-[10px] font-bold text-orange-400">${startTime} - ${endTime}</span>
+                            <span class="text-[10px] font-bold text-orange-300">${startTime} - ${endTime}</span>
                             ${isCurrent ? '<span class="px-1.5 py-0.5 rounded-md bg-orange-500 text-[8px] font-bold text-white animate-pulse">LIVE</span>' : ''}
                         </div>
                         <h4 class="text-xs font-semibold text-white/90 mb-1 leading-snug">${p.title}</h4>
