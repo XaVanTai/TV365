@@ -2823,8 +2823,8 @@ document.addEventListener('DOMContentLoaded',()=>{
 // ================= REMOTE TV365 =================
 let remoteArea = "tabs";
 let tabIndex = 0;
-let channelMemory = {};
 let channelIndex = 0;
+
 function getTabs() {
     return [...document.querySelectorAll(".category-tab")];
 }
@@ -2877,66 +2877,42 @@ document.addEventListener("keydown", function (e) {
 
         case "ArrowLeft":
 
-    if (remoteArea === "tabs") {
+            if (remoteArea === "tabs") {
 
-        if (tabIndex > 0) {
+                if (tabIndex > 0) {
+                    tabIndex--;
+                    updateRemoteFocus();
+                }
 
-            tabIndex--;
+            } else {
 
-            tabs[tabIndex].click();
-
-            setTimeout(function () {
-
-                channelIndex = channelMemory[tabIndex] || 0;
+                remoteArea = "tabs";
                 updateRemoteFocus();
 
-            },100);
+            }
 
-        }
+            e.preventDefault();
+            break;
 
-    } else {
-
-        channelMemory[tabIndex] = channelIndex;
-
-        remoteArea = "tabs";
-
-        updateRemoteFocus();
-
-    }
-
-    e.preventDefault();
-    break;
         case "ArrowRight":
 
-    if (remoteArea === "tabs") {
+            if (remoteArea === "tabs") {
 
-        if (tabIndex < tabs.length - 1) {
+                if (tabIndex < tabs.length - 1) {
+                    tabIndex++;
+                    updateRemoteFocus();
+                }
 
-            tabIndex++;
+            } else {
 
-            tabs[tabIndex].click();
-
-            setTimeout(function () {
-
-                channelIndex = channelMemory[tabIndex] || 0;
+                remoteArea = "tabs";
                 updateRemoteFocus();
 
-            },100);
+            }
 
-        }
+            e.preventDefault();
+            break;
 
-    } else {
-
-        channelMemory[tabIndex] = channelIndex;
-
-        remoteArea = "tabs";
-
-        updateRemoteFocus();
-
-    }
-
-    e.preventDefault();
-    break;
         case "ArrowDown":
 
             if (remoteArea === "tabs") {
@@ -3022,10 +2998,12 @@ window.renderChannelsExplicit = function (channels) {
 
     setTimeout(function () {
 
-        if (channelIndex < 0) channelIndex = 0;
+        if (remoteArea === "list") {
 
-        if (channelIndex >= getChannels().length)
-            channelIndex = 0;
+            if (channelIndex >= getChannels().length)
+                channelIndex = getChannels().length - 1;
+
+        }
 
         updateRemoteFocus();
 
