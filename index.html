@@ -2064,11 +2064,6 @@ font-weight:700;
         }
 
         // Improved Play Channel
-const items = getChannels();
-const index = items.findIndex(x => x === document.querySelector(".remote-focus"));
-if (index >= 0) {
-    lastChannelByTab[tabIndex] = index;
-}
         async function playChannel(channel) {
             selectedChannelId = channel.id || channel.name;
             const epgBtn = document.getElementById('epg-toggle-btn');
@@ -2528,12 +2523,12 @@ if (index >= 0) {
                     liveSyncDurationCount: 3,
                     liveMaxLatencyDurationCount: 6,
                     stretchShortVideoTrack: true,
-                    maxBufferHole: 2.0,              // Tăng lên 2s để tránh khựng khi nối đoạn quảng cáo (như khi có quảng cáo)
-                    highBufferWatchdogPeriod: 2,
+                    maxBufferHole: 0.5,              // Giữ buffer hole vừa phải, tránh nhảy timeline trên Android TV
+                    highBufferWatchdogPeriod: 5,
                     forceKeyFrameOnDiscontinuity: true,
                     progressive: false,
                     // === Audio Sync Tuning ===
-                    maxAudioFramesDrift: 1,          // Ép đồng bộ âm thanh cực gắt
+                    maxAudioFramesDrift: 3,          // Cho phép sai lệch nhỏ để WebView TV không liên tục reset audio
                     initialLiveManifestSize: 3,
                 });
 
@@ -2812,59 +2807,25 @@ async function startTV365() {
 
 </script>
 
-<script>
-document.addEventListener('keydown',function(e){
- const items=[...document.querySelectorAll('.category-tab,.channel-item')];
- if(!items.length)return;
- let i=items.findIndex(el=>el.classList.contains('remote-focus'));
- if(i<0){i=0;items[0].classList.add('remote-focus');items[0].focus?.();}
- const cols=1;
- function setFocus(n){
-   items[i].classList.remove('remote-focus');
-   i=Math.max(0,Math.min(items.length-1,n));
-   items[i].classList.add('remote-focus');
-   items[i].scrollIntoView({block:'nearest'});
- }
- switch(e.key){
-  case 'ArrowDown': e.preventDefault(); setFocus(i+1); break;
-  case 'ArrowUp': e.preventDefault(); setFocus(i-1); break;
-  case 'ArrowRight': e.preventDefault(); setFocus(i+1); break;
-  case 'ArrowLeft': e.preventDefault(); setFocus(i-1); break;
-  case 'Enter':
-  case 'OK':
-    e.preventDefault(); items[i].click(); break;
- }
-});
-</script>
+
 
 
 <script>
-function __tvAutoFullscreen(){
- const isTv = /TV|AFT|BRAVIA|Android TV|SMART-TV/i.test(navigator.userAgent);
- if(!isTv) return;
- const c=document.querySelector('.video-container');
- if(c && !document.fullscreenElement){
-   c.requestFullscreen?.();
- }
+function __tvIsAndroidTv() {
+    return /TV|AFT|BRAVIA|Android TV|SMART-TV/i.test(navigator.userAgent);
 }
-document.addEventListener('DOMContentLoaded',()=>{
- const v=document.getElementById('video-player');
- if(v){
-   v.addEventListener('play',__tvAutoFullscreen);
- }
-});
 
-// TV365 Remote Navigation
-let remoteIndex=0;
-function tvItems(){return [...document.querySelectorAll('.channel-item')];}
-function tvFocus(){
- const items=tvItems(); if(!items.length)return;
- items.forEach(e=>e.classList.remove('remote-focus'));
- remoteIndex=Math.max(0,Math.min(remoteIndex,items.length-1));
- items[remoteIndex].classList.add('remote-focus');
- items[remoteIndex].scrollIntoView({block:'nearest'});
+function __tvRequestFullscreen() {
+    if (!__tvIsAndroidTv() || document.fullscreenElement) return;
+    const container = document.querySelector('.video-container');
+    if (!container) return;
+    try {
+        const result = container.requestFullscreen?.();
+        if (result && result.catch) result.catch(() => {});
+    } catch (_) {}
 }
-// ================= REMOTE TV365 =================
+
+// ================= TV365 REMOTE - SINGLE HANDLER =================
 let remoteArea = "tabs";
 let tabIndex = 0;
 let channelIndex = 0;
@@ -2889,174 +2850,136 @@ function updateRemoteFocus() {
 
     if (remoteArea === "tabs") {
         const tabs = getTabs();
-        if (tabs[tabIndex]) {
-            tabs[tabIndex].classList.add("remote-focus");
-            tabs[tabIndex].scrollIntoView({
-                behavior: "smooth",
-                inline: "center",
-                block: "nearest"
-            });
-        }
-    } else {
-        const items = getChannels();
-
-        if (channelIndex < 0) channelIndex = 0;
-        if (channelIndex >= items.length) channelIndex = items.length - 1;
-
-        if (items[channelIndex]) {
-            items[channelIndex].classList.add("remote-focus");
-            items[channelIndex].scrollIntoView({
-                behavior: "smooth",
-                block: "center"
-            });
-        }
+        if (!tabs.length) return;
+        tabIndex = Math.max(0, Math.min(tabIndex, tabs.length - 1));
+        const target = tabs[tabIndex];
+        target.classList.add("remote-focus");
+        target.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+        return;
     }
+
+    const items = getChannels();
+    if (!items.length) {
+        remoteArea = "tabs";
+        updateRemoteFocus();
+        return;
+    }
+
+    channelIndex = Math.max(0, Math.min(channelIndex, items.length - 1));
+    const target = items[channelIndex];
+    target.classList.add("remote-focus");
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 document.addEventListener("keydown", function (e) {
+    const search = document.getElementById("search-input");
+    const active = document.activeElement;
+
+    // Khi đang gõ tìm kiếm: giữ bàn phím bình thường.
+    // ArrowDown thoát ô tìm kiếm và đi vào khu vực remote.
+    if (active === search) {
+        if (e.key !== "ArrowDown") return;
+        search.blur();
+        remoteArea = "tabs";
+        updateRemoteFocus();
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return;
+    }
+
+    if (active && (active.tagName === "INPUT" || active.tagName === "SELECT")) return;
 
     const tabs = getTabs();
     const items = getChannels();
+    const key = e.key;
 
-    switch (e.key) {
-
-        case "ArrowLeft":
-
-            if (remoteArea === "tabs") {
-
-                if (tabIndex > 0) {
-                    tabIndex--;
-                    updateRemoteFocus();
-                }
-
-            } else {
-
-                remoteArea = "tabs";
-                updateRemoteFocus();
-
-            }
-
-            e.preventDefault();
-            break;
-
-        case "ArrowRight":
-
-            if (remoteArea === "tabs") {
-
-                if (tabIndex < tabs.length - 1) {
-                    tabIndex++;
-                    updateRemoteFocus();
-                }
-
-            } else {
-
-                remoteArea = "tabs";
-                updateRemoteFocus();
-
-            }
-
-            e.preventDefault();
-            break;
-
-        case "ArrowDown":
-
-            if (remoteArea === "tabs") {
-
-                remoteArea = "list";
-                channelIndex = lastChannelByTab[tabIndex] ?? 0;
-
-            } else {
-
-                if (channelIndex < items.length - 1)
-                    channelIndex++;
-
-            }
-
-            updateRemoteFocus();
-            e.preventDefault();
-            break;
-
-        case "ArrowUp":
-
-            if (remoteArea === "list") {
-
-                if (channelIndex > 0) {
-
-                    channelIndex--;
-
-                } else {
-
-                    remoteArea = "tabs";
-
-                }
-
-                updateRemoteFocus();
-
-            }
-
-            e.preventDefault();
-            break;
-
-        case "Enter":
-        case "OK":
-
-            if (remoteArea === "tabs") {
-
-                if (tabs[tabIndex]) {
-
-                    tabs[tabIndex].click();
-
-                    setTimeout(function () {
-                        channelIndex = lastChannelByTab[tabIndex] ?? 0;
-                        remoteArea = "list";
-                        updateRemoteFocus();
-                    }, 100);
-
-                }
-
-            } else {
-
-                if (items[channelIndex]) {
-
-                    lastChannelByTab[tabIndex] = channelIndex;
-                    items[channelIndex].click();
-
-                }
-
-            }
-
-            e.preventDefault();
-            break;
-
+    if (!["ArrowLeft", "ArrowRight", "ArrowDown", "ArrowUp", "Enter", "OK"].includes(key)) {
+        return;
     }
 
-});
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    if (key === "ArrowLeft") {
+        if (remoteArea === "tabs") {
+            tabIndex = Math.max(0, tabIndex - 1);
+        } else {
+            remoteArea = "tabs";
+        }
+        updateRemoteFocus();
+        return;
+    }
+
+    if (key === "ArrowRight") {
+        if (remoteArea === "tabs") {
+            tabIndex = Math.min(Math.max(0, tabs.length - 1), tabIndex + 1);
+        } else {
+            remoteArea = "tabs";
+        }
+        updateRemoteFocus();
+        return;
+    }
+
+    if (key === "ArrowDown") {
+        if (remoteArea === "tabs") {
+            remoteArea = "list";
+            channelIndex = lastChannelByTab[tabIndex] ?? 0;
+        } else {
+            channelIndex = Math.min(Math.max(0, items.length - 1), channelIndex + 1);
+        }
+        updateRemoteFocus();
+        return;
+    }
+
+    if (key === "ArrowUp") {
+        if (remoteArea === "list") {
+            if (channelIndex > 0) channelIndex--;
+            else remoteArea = "tabs";
+            updateRemoteFocus();
+        }
+        return;
+    }
+
+    if (key === "Enter" || key === "OK") {
+        if (remoteArea === "tabs") {
+            const tab = tabs[tabIndex];
+            if (!tab) return;
+            tab.click();
+            setTimeout(function () {
+                channelIndex = lastChannelByTab[tabIndex] ?? 0;
+                remoteArea = "list";
+                updateRemoteFocus();
+            }, 100);
+            return;
+        }
+
+        const item = items[channelIndex];
+        if (!item) return;
+        lastChannelByTab[tabIndex] = channelIndex;
+
+        // Fullscreen được gọi ngay trong thao tác OK/Enter để Android TV chấp nhận user gesture.
+        __tvRequestFullscreen();
+        item.click();
+    }
+}, true);
 
 window.addEventListener("load", function () {
     setTimeout(updateRemoteFocus, 500);
 });
 
 const __render = window.renderChannelsExplicit;
-
-window.renderChannelsExplicit = function (channels) {
-
-    __render(channels);
-
-    setTimeout(function () {
-
-        if (remoteArea === "list") {
-
-            if (channelIndex >= getChannels().length)
-                channelIndex = getChannels().length - 1;
-
-        }
-
-        updateRemoteFocus();
-
-    }, 50);
-
-};
-// ================= END REMOTE =================
+if (typeof __render === "function") {
+    window.renderChannelsExplicit = function (channels) {
+        __render(channels);
+        setTimeout(function () {
+            if (remoteArea === "list" && channelIndex >= getChannels().length) {
+                channelIndex = Math.max(0, getChannels().length - 1);
+            }
+            updateRemoteFocus();
+        }, 50);
+    };
+}
+// ================= END TV365 REMOTE =================
 </script>
 
 </body>
