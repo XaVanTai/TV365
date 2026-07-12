@@ -2587,23 +2587,23 @@ font-weight:700;
             // --- Case 2: HLS / M3U8 (Using Hls.js) ---
             else if (typeof Hls !== 'undefined' && Hls.isSupported() && !isMPD) {
                 hlsInstance = new Hls({
-                    enableWorker: tv365IsTvVtv(channel) ? false : true,
+                    enableWorker: true,
                     lowLatencyMode: false,
 
-                    startLevel: tv365IsTvVtv(channel) ? 0 : -1,
-                    testBandwidth: tv365IsTvVtv(channel) ? false : true,
+                    startLevel: -1,
+                    testBandwidth: true,
                     capLevelToPlayerSize: true,
 
                     backBufferLength: 30,
-                    maxBufferLength: tv365IsTvVtv(channel) ? 90 : 24,
-                    maxMaxBufferLength: tv365IsTvVtv(channel) ? 120 : 45,
+                    maxBufferLength: __tvIsAndroidTv() ? 36 : 24,
+                    maxMaxBufferLength: __tvIsAndroidTv() ? 60 : 45,
                     maxBufferSize: 60 * 1000 * 1000,
 
-                    liveSyncDurationCount: tv365IsTvVtv(channel) ? 6 : 4,
-                    liveMaxLatencyDurationCount: tv365IsTvVtv(channel) ? 14 : 10,
+                    liveSyncDurationCount: __tvIsAndroidTv() ? 6 : 4,
+                    liveMaxLatencyDurationCount: __tvIsAndroidTv() ? 14 : 10,
 
-                    maxBufferHole: tv365IsTvVtv(channel) ? 1.5 : 0.5,
-                    highBufferWatchdogPeriod: tv365IsTvVtv(channel) ? 10 : 3,
+                    maxBufferHole: __tvIsAndroidTv() ? 1.5 : 0.5,
+                    highBufferWatchdogPeriod: __tvIsAndroidTv() ? 12 : 3,
 
                     manifestLoadingMaxRetry: 4,
                     manifestLoadingRetryDelay: 500,
@@ -2617,16 +2617,16 @@ font-weight:700;
                     abrEwmaFastLive: 3,
                     abrEwmaSlowLive: 6,
                     abrBandWidthFactor: __tvIsAndroidTv()
-                        ? 0.70
+                        ? 0.82
                         : (tv365AdaptiveProfile().lowDevice ? 0.70 : 0.90),
                     abrBandWidthUpFactor: __tvIsAndroidTv()
-                        ? 0.55
+                        ? 0.70
                         : (tv365AdaptiveProfile().lowDevice ? 0.55 : 0.80),
                     abrEwmaDefaultEstimate: __tvIsAndroidTv()
-                        ? 2200000
+                        ? 5000000
                         : (tv365AdaptiveProfile().lowDevice ? 1800000 : 8000000),
                     abrEwmaDefaultEstimateMax: __tvIsAndroidTv()
-                        ? 10000000
+                        ? 20000000
                         : (tv365AdaptiveProfile().lowDevice ? 8000000 : 20000000),
 
                     stretchShortVideoTrack: false,
@@ -2641,40 +2641,6 @@ font-weight:700;
                 hlsInstance.attachMedia(videoPlayer);
 
                 hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-                    if (
-                        tv365IsTvVtv(channel) &&
-                        hlsInstance.levels?.length
-                    ) {
-                        let tvStableLevel = -1;
-
-                        hlsInstance.levels.forEach((level, index) => {
-                            const height = Number(level.height || 0);
-
-                            if (
-                                height > 0 &&
-                                height <= 720 &&
-                                (
-                                    tvStableLevel < 0 ||
-                                    height > Number(
-                                        hlsInstance.levels[tvStableLevel]?.height || 0
-                                    )
-                                )
-                            ) {
-                                tvStableLevel = index;
-                            }
-                        });
-
-                        if (tvStableLevel < 0) {
-                            tvStableLevel = 0;
-                        }
-
-                        hlsInstance.startLevel = tvStableLevel;
-                        hlsInstance.currentLevel = tvStableLevel;
-                        hlsInstance.nextLevel = tvStableLevel;
-                        hlsInstance.loadLevel = tvStableLevel;
-                        hlsInstance.autoLevelCapping = tvStableLevel;
-                    }
-
                     if (
                         tv365AdaptiveProfile().lowDevice &&
                         hlsInstance.levels?.length
