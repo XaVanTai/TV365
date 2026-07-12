@@ -1,7 +1,7 @@
 {
-  "versionCode": 7,
-  "versionName": "V7",
-  "apkUrl": "https://tv365-vn.github.io/TV365/TV365-V7.apk",
+  "versionCode": 6,
+  "versionName": "V6",
+  "apkUrl": "",
   "forceUpdate": false,
-  "message": "Đã có phiên bản TV365 mới. Cập nhật ngay để sử dụng bản mới nhất."
+  "message": "TV365 V6 là phiên bản mới nhất."
 }
