@@ -2587,7 +2587,7 @@ font-weight:700;
             // --- Case 2: HLS / M3U8 (Using Hls.js) ---
             else if (typeof Hls !== 'undefined' && Hls.isSupported() && !isMPD) {
                 hlsInstance = new Hls({
-                    enableWorker: true,
+                    enableWorker: tv365IsTvVtv(channel) ? false : true,
                     lowLatencyMode: false,
 
                     startLevel: tv365IsTvVtv(channel) ? 0 : -1,
@@ -2595,8 +2595,8 @@ font-weight:700;
                     capLevelToPlayerSize: true,
 
                     backBufferLength: 30,
-                    maxBufferLength: tv365IsTvVtv(channel) ? 50 : 24,
-                    maxMaxBufferLength: tv365IsTvVtv(channel) ? 80 : 45,
+                    maxBufferLength: tv365IsTvVtv(channel) ? 90 : 24,
+                    maxMaxBufferLength: tv365IsTvVtv(channel) ? 120 : 45,
                     maxBufferSize: 60 * 1000 * 1000,
 
                     liveSyncDurationCount: tv365IsTvVtv(channel) ? 6 : 4,
@@ -3086,10 +3086,11 @@ function __tvRequestFullscreen() {
 
     const search = document.getElementById('search-input');
     const container = document.querySelector('.video-container');
+    const player = document.getElementById('video-player');
 
     try {
         if (search) search.blur();
-        if (!container) return;
+        if (!container || !player) return;
 
         if (!document.body.classList.contains('tv365-tv-fullscreen')) {
             tv365TvPlayerPlaceholder =
@@ -3119,14 +3120,14 @@ function __tvRequestFullscreen() {
         container.style.setProperty('z-index', '2147483647', 'important');
         container.style.setProperty('background', '#000', 'important');
 
-        videoPlayer.style.setProperty('position', 'absolute', 'important');
-        videoPlayer.style.setProperty('inset', '0', 'important');
-        videoPlayer.style.setProperty('width', '100%', 'important');
-        videoPlayer.style.setProperty('height', '100%', 'important');
-        videoPlayer.style.setProperty('max-width', 'none', 'important');
-        videoPlayer.style.setProperty('max-height', 'none', 'important');
-        videoPlayer.style.setProperty('margin', '0', 'important');
-        videoPlayer.style.setProperty('object-fit', 'contain', 'important');
+        player.style.setProperty('position', 'absolute', 'important');
+        player.style.setProperty('inset', '0', 'important');
+        player.style.setProperty('width', '100%', 'important');
+        player.style.setProperty('height', '100%', 'important');
+        player.style.setProperty('max-width', 'none', 'important');
+        player.style.setProperty('max-height', 'none', 'important');
+        player.style.setProperty('margin', '0', 'important');
+        player.style.setProperty('object-fit', 'contain', 'important');
 
         document.body.classList.add('tv365-tv-fullscreen');
         document.body.focus({ preventScroll: true });
@@ -3140,6 +3141,7 @@ window.TV365_EXIT_TV_FULLSCREEN = function () {
     if (!active) return false;
 
     const container = document.querySelector('.video-container');
+    const player = document.getElementById('video-player');
 
     document.body.classList.remove('tv365-tv-fullscreen');
 
@@ -3166,7 +3168,7 @@ window.TV365_EXIT_TV_FULLSCREEN = function () {
         [
             'position', 'inset', 'width', 'height',
             'max-width', 'max-height', 'margin', 'object-fit'
-        ].forEach(name => videoPlayer.style.removeProperty(name));
+        ].forEach(name => player.style.removeProperty(name));
     } catch (_) {}
 
     window.TV365_RESET_TV_FOCUS?.();
