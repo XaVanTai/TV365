@@ -3129,7 +3129,12 @@ window.TV365_RESET_TV_FOCUS = function () {
     }, 700);
 };
 
+let tv365RemoteModeEnabled = false;
+
 window.TV365_ENABLE_REMOTE_MODE = function () {
+    if (tv365RemoteModeEnabled) return;
+    tv365RemoteModeEnabled = true;
+
     const search = document.getElementById("search-input");
 
     if (search) {
@@ -3137,7 +3142,15 @@ window.TV365_ENABLE_REMOTE_MODE = function () {
         search.readOnly = true;
     }
 
-    remoteArea = "tabs";
+    const items = getChannels();
+
+    if (items.length > 0) {
+        remoteArea = "list";
+        channelIndex = Math.max(0, Math.min(channelIndex, items.length - 1));
+    } else {
+        remoteArea = "tabs";
+    }
+
     updateRemoteFocusForce();
 
     setTimeout(function () {
@@ -3250,7 +3263,7 @@ window.TV365_HANDLE_REMOTE_KEY = function (code) {
             if (channelIndex > 0) {
                 channelIndex--;
             } else {
-                remoteArea = "tabs";
+                remoteArea = "search";
             }
         } else if (remoteArea === "tabs") {
             remoteArea = "search";
