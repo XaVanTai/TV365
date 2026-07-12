@@ -453,7 +453,31 @@ font-weight:700;
             width: 0%;
             transition: width 0.3s;
         }
-    </style>
+    
+        /* TV365 instant TV fullscreen */
+        body.tv365-tv-fullscreen {
+            overflow: hidden !important;
+        }
+
+        body.tv365-tv-fullscreen .video-container {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: none !important;
+            max-height: none !important;
+            margin: 0 !important;
+            z-index: 2147483000 !important;
+            background: #000 !important;
+        }
+
+        body.tv365-tv-fullscreen .video-container video {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain !important;
+        }
+
+</style>
 </head>
 
 <body class="selection:bg-orange-500/30" onload="startTV365()">
@@ -2129,6 +2153,14 @@ font-weight:700;
             return { lowDevice };
         }
 
+        function tv365IsVtv1To9(channel) {
+            const name = String(channel?.name || "")
+                .replace(/\s+/g, "")
+                .toUpperCase();
+
+            return /^VTV[1-9](HD)?$/.test(name);
+        }
+
         async function playChannel(channel) {
             enterTvFullscreenNow();
 
@@ -2564,11 +2596,18 @@ font-weight:700;
 
                     abrEwmaFastLive: 3,
                     abrEwmaSlowLive: 6,
-                    abrBandWidthFactor: tv365AdaptiveProfile().lowDevice ? 0.70 : 0.90,
-                    abrBandWidthUpFactor: tv365AdaptiveProfile().lowDevice ? 0.55 : 0.80,
-                    abrEwmaDefaultEstimate: tv365AdaptiveProfile().lowDevice
-                        ? 1800000
-                        : 8000000,
+                    abrBandWidthFactor:
+                        (__tvIsAndroidTv() && tv365IsVtv1To9(channel))
+                            ? 0.70
+                            : (tv365AdaptiveProfile().lowDevice ? 0.70 : 0.90),
+                    abrBandWidthUpFactor:
+                        (__tvIsAndroidTv() && tv365IsVtv1To9(channel))
+                            ? 0.55
+                            : (tv365AdaptiveProfile().lowDevice ? 0.55 : 0.80),
+                    abrEwmaDefaultEstimate:
+                        (__tvIsAndroidTv() && tv365IsVtv1To9(channel))
+                            ? 2200000
+                            : (tv365AdaptiveProfile().lowDevice ? 1800000 : 8000000),
                     abrEwmaDefaultEstimateMax: tv365AdaptiveProfile().lowDevice
                         ? 8000000
                         : 20000000,
@@ -2585,6 +2624,46 @@ font-weight:700;
                 hlsInstance.attachMedia(videoPlayer);
 
                 hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+                    if (
+                        __tvIsAndroidTv() &&
+                        tv365IsVtv1To9(channel) &&
+                        hlsInstance.levels?.length
+                    ) {
+                        let tvStartLevel = -1;
+
+                        hlsInstance.levels.forEach((level, index) => {
+                            const height = Number(level.height || 0);
+
+                            if (
+                                height > 0 &&
+                                height <= 720 &&
+                                (
+                                    tvStartLevel < 0 ||
+                                    height > Number(hlsInstance.levels[tvStartLevel]?.height || 0)
+                                )
+                            ) {
+                                tvStartLevel = index;
+                            }
+                        });
+
+                        if (tvStartLevel >= 0) {
+                            hlsInstance.startLevel = tvStartLevel;
+                            hlsInstance.nextLevel = tvStartLevel;
+                            hlsInstance.autoLevelCapping = tvStartLevel;
+
+                            setTimeout(() => {
+                                if (
+                                    hlsInstance &&
+                                    currentPlayingUrl === url
+                                ) {
+                                    hlsInstance.autoLevelCapping = -1;
+                                    hlsInstance.nextLevel = -1;
+                                    hlsInstance.loadLevel = -1;
+                                }
+                            }, 10000);
+                        }
+                    }
+
                     if (
                         tv365AdaptiveProfile().lowDevice &&
                         hlsInstance.levels?.length
@@ -2718,6 +2797,49 @@ font-weight:700;
 
                 hlsInstance.on(Hls.Events.ERROR, (event, data) => {
                     const adaptiveDetails = String(data?.details || "").toLowerCase();
+
+                    if (
+                        __tvIsAndroidTv() &&
+                        tv365IsVtv1To9(channel) &&
+                        (
+                            adaptiveDetails.includes("bufferstalled") ||
+                            adaptiveDetails.includes("fragload")
+                        )
+                    ) {
+                        let tvSafeLevel = -1;
+
+                        hlsInstance.levels?.forEach((level, index) => {
+                            const height = Number(level.height || 0);
+
+                            if (
+                                height > 0 &&
+                                height <= 720 &&
+                                (
+                                    tvSafeLevel < 0 ||
+                                    height > Number(hlsInstance.levels[tvSafeLevel]?.height || 0)
+                                )
+                            ) {
+                                tvSafeLevel = index;
+                            }
+                        });
+
+                        if (tvSafeLevel >= 0) {
+                            hlsInstance.autoLevelCapping = tvSafeLevel;
+                            hlsInstance.nextLevel = tvSafeLevel;
+                            hlsInstance.loadLevel = tvSafeLevel;
+
+                            setTimeout(() => {
+                                if (
+                                    hlsInstance &&
+                                    currentPlayingUrl === url
+                                ) {
+                                    hlsInstance.autoLevelCapping = -1;
+                                    hlsInstance.nextLevel = -1;
+                                    hlsInstance.loadLevel = -1;
+                                }
+                            }, 90000);
+                        }
+                    }
 
                     if (
                         tv365AdaptiveProfile().lowDevice &&
@@ -2985,25 +3107,37 @@ document.addEventListener("DOMContentLoaded", function () {
 
 <script>
 function __tvIsAndroidTv() {
-    return /TV365_ANDROID_TV|TV|AFT|BRAVIA|Android TV|SMART-TV/i.test(navigator.userAgent);
+    return window.__TV365_REMOTE_ACTIVE__ === true ||
+        /TV365_ANDROID_TV|TV|AFT|BRAVIA|Android TV|SMART-TV/i.test(navigator.userAgent);
 }
 
 function __tvRequestFullscreen() {
-    if (!__tvIsAndroidTv() || document.fullscreenElement) return;
-    const container = document.querySelector('.video-container');
+    if (!__tvIsAndroidTv()) return;
+
     const search = document.getElementById('search-input');
-    if (!container) return;
-    try {
-        if (search) {
-            search.blur();
-            search.readOnly = true;
-            setTimeout(() => { search.readOnly = false; }, 900);
-        }
-        document.body.focus({ preventScroll: true });
-        const result = container.requestFullscreen?.();
-        if (result && result.catch) result.catch(() => {});
-    } catch (_) {}
+
+    if (search) {
+        search.blur();
+        search.readOnly = true;
+        setTimeout(() => { search.readOnly = false; }, 900);
+    }
+
+    document.body.classList.add('tv365-tv-fullscreen');
+    document.body.focus({ preventScroll: true });
 }
+
+window.TV365_EXIT_INSTANT_FULLSCREEN = function () {
+    const wasFullscreen =
+        document.body.classList.contains('tv365-tv-fullscreen');
+
+    document.body.classList.remove('tv365-tv-fullscreen');
+
+    if (wasFullscreen) {
+        window.TV365_RESET_TV_FOCUS?.();
+    }
+
+    return wasFullscreen;
+};
 
 // ================= TV365 REMOTE V2 - ANDROID KEY DRIVER =================
 let remoteArea = "tabs"; // search | tabs | list
@@ -3132,6 +3266,8 @@ window.TV365_RESET_TV_FOCUS = function () {
 let tv365RemoteModeEnabled = false;
 
 window.TV365_ENABLE_REMOTE_MODE = function () {
+    window.__TV365_REMOTE_ACTIVE__ = true;
+
     if (tv365RemoteModeEnabled) return;
     tv365RemoteModeEnabled = true;
 
@@ -3260,11 +3396,7 @@ window.TV365_HANDLE_REMOTE_KEY = function (code) {
 
     if (code === 19) { // UP
         if (remoteArea === "list") {
-            if (channelIndex > 0) {
-                channelIndex--;
-            } else {
-                remoteArea = "search";
-            }
+            remoteArea = "search";
         } else if (remoteArea === "tabs") {
             remoteArea = "search";
         }
