@@ -2641,6 +2641,34 @@ font-weight:700;
                 hlsInstance.attachMedia(videoPlayer);
 
                 hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+                    if (hlsInstance.levels?.length) {
+                        let highestLevel = 0;
+
+                        hlsInstance.levels.forEach((level, index) => {
+                            const current = hlsInstance.levels[highestLevel];
+                            const height = Number(level.height || 0);
+                            const currentHeight = Number(current?.height || 0);
+                            const bitrate = Number(level.bitrate || 0);
+                            const currentBitrate = Number(current?.bitrate || 0);
+
+                            if (
+                                height > currentHeight ||
+                                (
+                                    height === currentHeight &&
+                                    bitrate > currentBitrate
+                                )
+                            ) {
+                                highestLevel = index;
+                            }
+                        });
+
+                        hlsInstance.startLevel = highestLevel;
+                        hlsInstance.currentLevel = highestLevel;
+                        hlsInstance.nextLevel = highestLevel;
+                        hlsInstance.loadLevel = highestLevel;
+                        hlsInstance.autoLevelCapping = highestLevel;
+                    }
+
                     if (
                         tv365AdaptiveProfile().lowDevice &&
                         hlsInstance.levels?.length
@@ -3178,11 +3206,20 @@ function tv365DpadFocusChannel(index) {
 
     const item = items[tv365DpadIndex];
     item.classList.add("remote-focus");
-    item.scrollIntoView({
-        behavior: "auto",
-        block: "nearest",
-        inline: "nearest"
-    });
+
+    const list = item.parentElement;
+    if (list) {
+        const itemTop = item.offsetTop;
+        const itemBottom = itemTop + item.offsetHeight;
+        const viewTop = list.scrollTop;
+        const viewBottom = viewTop + list.clientHeight;
+
+        if (itemTop < viewTop) {
+            list.scrollTop = itemTop;
+        } else if (itemBottom > viewBottom) {
+            list.scrollTop = itemBottom - list.clientHeight;
+        }
+    }
 }
 
 function tv365DpadFocusSearch(openKeyboard) {
@@ -3299,15 +3336,6 @@ window.TV365_DPAD_KEY = function (code) {
 
     if (code === 19) {
         if (tv365DpadMode === "channels") {
-            const items = tv365DpadChannels();
-            const focusedIndex = items.findIndex(item =>
-                item.classList.contains("remote-focus")
-            );
-
-            if (focusedIndex >= 0) {
-                tv365DpadIndex = focusedIndex;
-            }
-
             if (tv365DpadIndex <= 0) {
                 tv365DpadFocusSearch(false);
             } else {
