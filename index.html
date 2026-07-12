@@ -2116,6 +2116,19 @@ font-weight:700;
             }
         }
 
+        // === TV365 Adaptive Phone V1 ===
+        function tv365AdaptiveProfile() {
+            const ua = navigator.userAgent || "";
+            const memory = Number(navigator.deviceMemory || 0);
+            const width = Math.min(screen.width || 0, screen.height || 0);
+
+            const lowDevice =
+                /CPH2269|OPPO A16/i.test(ua) ||
+                (memory > 0 && memory <= 4 && width <= 720);
+
+            return { lowDevice };
+        }
+
         async function playChannel(channel) {
             enterTvFullscreenNow();
 
@@ -2551,10 +2564,14 @@ font-weight:700;
 
                     abrEwmaFastLive: 3,
                     abrEwmaSlowLive: 6,
-                    abrBandWidthFactor: 0.90,
-                    abrBandWidthUpFactor: 0.80,
-                    abrEwmaDefaultEstimate: 8000000,
-                    abrEwmaDefaultEstimateMax: 20000000,
+                    abrBandWidthFactor: tv365AdaptiveProfile().lowDevice ? 0.70 : 0.90,
+                    abrBandWidthUpFactor: tv365AdaptiveProfile().lowDevice ? 0.55 : 0.80,
+                    abrEwmaDefaultEstimate: tv365AdaptiveProfile().lowDevice
+                        ? 1800000
+                        : 8000000,
+                    abrEwmaDefaultEstimateMax: tv365AdaptiveProfile().lowDevice
+                        ? 8000000
+                        : 20000000,
 
                     stretchShortVideoTrack: false,
                     forceKeyFrameOnDiscontinuity: false,
@@ -2568,6 +2585,42 @@ font-weight:700;
                 hlsInstance.attachMedia(videoPlayer);
 
                 hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+                    if (
+                        tv365AdaptiveProfile().lowDevice &&
+                        hlsInstance.levels?.length
+                    ) {
+                        let best720 = -1;
+
+                        hlsInstance.levels.forEach((level, index) => {
+                            const height = Number(level.height || 0);
+
+                            if (
+                                height > 0 &&
+                                height <= 720 &&
+                                (
+                                    best720 < 0 ||
+                                    height > Number(hlsInstance.levels[best720]?.height || 0)
+                                )
+                            ) {
+                                best720 = index;
+                            }
+                        });
+
+                        if (best720 >= 0) {
+                            hlsInstance.startLevel = best720;
+                            hlsInstance.nextLevel = best720;
+
+                            // Sau 45 giây ổn định, trả lại AUTO.
+                            // Nếu mạng/decoder đủ khỏe Hls.js có thể tăng lại 1080p.
+                            setTimeout(() => {
+                                if (hlsInstance) {
+                                    hlsInstance.nextLevel = -1;
+                                    hlsInstance.loadLevel = -1;
+                                }
+                            }, 45000);
+                        }
+                    }
+
                     videoPlayer.play().catch(e => {
                         showToast('Nhấn nút Play để chạy luồng.', 'warning');
                         loadingOverlay.classList.add('hidden');
@@ -2661,7 +2714,50 @@ font-weight:700;
                     return true;
                 }
 
+                let tv365LastAdaptiveDownshift = 0;
+
                 hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+                    const adaptiveDetails = String(data?.details || "").toLowerCase();
+
+                    if (
+                        tv365AdaptiveProfile().lowDevice &&
+                        Date.now() - tv365LastAdaptiveDownshift > 8000 &&
+                        (
+                            adaptiveDetails.includes("bufferstalled") ||
+                            adaptiveDetails.includes("fragload")
+                        )
+                    ) {
+                        let best720 = -1;
+
+                        hlsInstance.levels?.forEach((level, index) => {
+                            const height = Number(level.height || 0);
+
+                            if (
+                                height > 0 &&
+                                height <= 720 &&
+                                (
+                                    best720 < 0 ||
+                                    height > Number(hlsInstance.levels[best720]?.height || 0)
+                                )
+                            ) {
+                                best720 = index;
+                            }
+                        });
+
+                        if (best720 >= 0) {
+                            hlsInstance.nextLevel = best720;
+                            hlsInstance.loadLevel = best720;
+                            tv365LastAdaptiveDownshift = Date.now();
+
+                            setTimeout(() => {
+                                if (hlsInstance) {
+                                    hlsInstance.nextLevel = -1;
+                                    hlsInstance.loadLevel = -1;
+                                }
+                            }, 45000);
+                        }
+                    }
+
                     if (data.fatal && tv365TryNative4kFallback(data)) return;
                     if (data.fatal) {
                         switch (data.type) {
@@ -3033,9 +3129,57 @@ window.TV365_RESET_TV_FOCUS = function () {
     }, 700);
 };
 
-window.TV365_HANDLE_REMOTE_KEY = function (code) {
-    if (!__tvIsAndroidTv()) return false;
+window.TV365_ENABLE_REMOTE_MODE = function () {
+    const search = document.getElementById("search-input");
 
+    if (search) {
+        search.blur();
+        search.readOnly = true;
+    }
+
+    remoteArea = "tabs";
+    updateRemoteFocusForce();
+
+    setTimeout(function () {
+        if (search) search.readOnly = false;
+    }, 800);
+};
+
+function updateRemoteFocusForce() {
+    clearRemoteFocus();
+
+    const search = document.getElementById("search-input");
+
+    if (remoteArea === "search") {
+        if (search) search.classList.add("remote-focus");
+        return;
+    }
+
+    leaveSearch();
+
+    if (remoteArea === "tabs") {
+        const tabs = getTabs();
+        if (!tabs.length) return;
+
+        tabIndex = Math.max(0, Math.min(tabIndex, tabs.length - 1));
+        tabs[tabIndex].classList.add("remote-focus");
+        return;
+    }
+
+    const items = getChannels();
+    if (!items.length) {
+        remoteArea = "tabs";
+        updateRemoteFocusForce();
+        return;
+    }
+
+    channelIndex = Math.max(0, Math.min(channelIndex, items.length - 1));
+    const target = items[channelIndex];
+    target.classList.add("remote-focus");
+    target.scrollIntoView({ behavior: "auto", block: "nearest" });
+}
+
+window.TV365_HANDLE_REMOTE_KEY = function (code) {
     const search = document.getElementById("search-input");
     const tabs = getTabs();
     const items = getChannels();
@@ -3051,7 +3195,7 @@ window.TV365_HANDLE_REMOTE_KEY = function (code) {
         if (code === 20) {
             leaveSearch();
             remoteArea = "tabs";
-            updateRemoteFocus();
+            updateRemoteFocusForce();
             return true;
         }
 
@@ -3069,7 +3213,7 @@ window.TV365_HANDLE_REMOTE_KEY = function (code) {
             remoteArea = "tabs";
         }
 
-        updateRemoteFocus();
+        updateRemoteFocusForce();
         return true;
     }
 
@@ -3080,7 +3224,7 @@ window.TV365_HANDLE_REMOTE_KEY = function (code) {
             remoteArea = "tabs";
         }
 
-        updateRemoteFocus();
+        updateRemoteFocusForce();
         return true;
     }
 
@@ -3097,7 +3241,7 @@ window.TV365_HANDLE_REMOTE_KEY = function (code) {
             );
         }
 
-        updateRemoteFocus();
+        updateRemoteFocusForce();
         return true;
     }
 
@@ -3112,7 +3256,7 @@ window.TV365_HANDLE_REMOTE_KEY = function (code) {
             remoteArea = "search";
         }
 
-        updateRemoteFocus();
+        updateRemoteFocusForce();
         return true;
     }
 
