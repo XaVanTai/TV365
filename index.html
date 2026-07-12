@@ -2188,6 +2188,15 @@ font-weight:700;
             return __tvIsAndroidTv() && /^VTV[1-9](HD)?$/.test(name);
         }
 
+        // === TV365 4K SAFE MODE ===
+        // Chỉ áp dụng cho kênh có chữ 4K trong tên/tvg-id.
+        // Không thay đổi cơ chế VTV và các kênh thường.
+        function tv365Is4KChannel(channel) {
+            const name = String(channel?.name || "").toUpperCase();
+            const id = String(channel?.id || channel?.tvgId || "").toUpperCase();
+            return name.includes("4K") || id.includes("4K");
+        }
+
         async function playChannel(channel) {
             enterTvFullscreenNow();
 
@@ -2209,6 +2218,7 @@ font-weight:700;
             }
 
             const url = channel.url;
+            const tv3654KMode = tv365Is4KChannel(channel);
             currentPlayingUrl = url;
 
             // UI Update
@@ -2604,12 +2614,14 @@ font-weight:700;
 
                     startLevel: -1,
                     testBandwidth: true,
-                    capLevelToPlayerSize: true,
+                    // Kênh 4K được phép lấy level 2160p kể cả màn hình/player đang nhỏ.
+                    // Kênh thường giữ nguyên cơ chế cũ.
+                    capLevelToPlayerSize: tv3654KMode ? false : true,
 
                     backBufferLength: 30,
-                    maxBufferLength: __tvIsAndroidTv() ? 36 : 24,
-                    maxMaxBufferLength: __tvIsAndroidTv() ? 60 : 45,
-                    maxBufferSize: 60 * 1000 * 1000,
+                    maxBufferLength: tv3654KMode ? 12 : (__tvIsAndroidTv() ? 36 : 24),
+                    maxMaxBufferLength: tv3654KMode ? 24 : (__tvIsAndroidTv() ? 60 : 45),
+                    maxBufferSize: (tv3654KMode ? 120 : 60) * 1000 * 1000,
 
                     liveSyncDurationCount: __tvIsAndroidTv() ? 6 : 4,
                     liveMaxLatencyDurationCount: __tvIsAndroidTv() ? 14 : 10,
@@ -2634,12 +2646,16 @@ font-weight:700;
                     abrBandWidthUpFactor: __tvIsAndroidTv()
                         ? 0.70
                         : (tv365AdaptiveProfile().lowDevice ? 0.55 : 0.80),
-                    abrEwmaDefaultEstimate: __tvIsAndroidTv()
-                        ? 5000000
-                        : (tv365AdaptiveProfile().lowDevice ? 1800000 : 8000000),
-                    abrEwmaDefaultEstimateMax: __tvIsAndroidTv()
-                        ? 20000000
-                        : (tv365AdaptiveProfile().lowDevice ? 8000000 : 20000000),
+                    abrEwmaDefaultEstimate: tv3654KMode
+                        ? 25000000
+                        : (__tvIsAndroidTv()
+                            ? 5000000
+                            : (tv365AdaptiveProfile().lowDevice ? 1800000 : 8000000)),
+                    abrEwmaDefaultEstimateMax: tv3654KMode
+                        ? 80000000
+                        : (__tvIsAndroidTv()
+                            ? 20000000
+                            : (tv365AdaptiveProfile().lowDevice ? 8000000 : 20000000)),
 
                     stretchShortVideoTrack: false,
                     forceKeyFrameOnDiscontinuity: false,
@@ -2653,6 +2669,19 @@ font-weight:700;
                 hlsInstance.attachMedia(videoPlayer);
 
                 hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+                    if (tv3654KMode) {
+                        const max4KHeight = Math.max(
+                            0,
+                            ...(hlsInstance.levels || []).map(level => Number(level.height || 0))
+                        );
+
+                        console.log(`[TV365 4K] Max source height: ${max4KHeight}p`);
+
+                        if (max4KHeight > 0 && max4KHeight < 2160) {
+                            showToast(`Nguồn kênh này hiện tối đa ${max4KHeight}p, không phải 2160p thật.`, 'warning');
+                        }
+                    }
+
                     if (hlsInstance.levels?.length) {
                         let highestLevel = 0;
 
@@ -2821,6 +2850,7 @@ font-weight:700;
                     const adaptiveDetails = String(data?.details || "").toLowerCase();
 
                     if (
+                        !tv3654KMode &&
                         tv365AdaptiveProfile().lowDevice &&
                         Date.now() - tv365LastAdaptiveDownshift > 8000 &&
                         (
