@@ -645,6 +645,11 @@ font-weight:700;
                         <button class="ctrl-btn tooltip" data-tip="Dừng phát" onclick="stopChannel()">
                             <i data-lucide="square" class="w-3.5 h-3.5 fill-current"></i>
                         </button>
+                        <span id="real-quality-badge"
+                            class="quality-select"
+                            style="pointer-events:none; min-width:64px; text-align:center;">
+                            --p
+                        </span>
                         <select id="quality-selector" class="quality-select hidden" title="Chọn độ phân giải">
                             <option value="-1">Auto</option>
                         </select>
@@ -1782,6 +1787,8 @@ font-weight:700;
             playerOverlay.style.opacity = '1';
             loadingOverlay.classList.add('hidden');
             document.getElementById('quality-selector').classList.add('hidden');
+            const qualityBadge = document.getElementById('real-quality-badge');
+            if (qualityBadge) qualityBadge.textContent = '--p';
             const epgBtn = document.getElementById('epg-toggle-btn');
             if (epgBtn) epgBtn.classList.add('hidden');
             const audioVis = document.getElementById('audio-visualizer');
@@ -2554,6 +2561,11 @@ font-weight:700;
 
                         shakaInstance.addEventListener('adaptation', () => {
                             if (!shakaInstance) return;
+
+                            const activeQualityTrack =
+                                shakaInstance.getVariantTracks().find(t => t.active);
+                            tv365UpdateRealQualityBadge(activeQualityTrack?.height || 0);
+
                             const abrConfig = shakaInstance.getConfiguration().abr;
                             if (abrConfig && abrConfig.enabled && qualitySelector.value === 'auto') {
                                 const currentTrack = shakaInstance.getVariantTracks().find(t => t.active);
@@ -2751,6 +2763,9 @@ font-weight:700;
 
                 // === Cập nhật dropdown khi ABR tự chuyển level ===
                 hlsInstance.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+                    const switchedLevel = hlsInstance.levels[data.level];
+                    tv365UpdateRealQualityBadge(switchedLevel?.height || 0);
+
                     const qualitySelector = document.getElementById('quality-selector');
                     if (!qualitySelector) return;
                     if (hlsInstance.autoLevelEnabled && qualitySelector.value === '-1') {
@@ -2982,6 +2997,58 @@ font-weight:700;
                 }
             };
         }
+
+        // === TV365: luôn hiển thị chất lượng video thực tế đang phát ===
+        function tv365UpdateRealQualityBadge(forcedHeight = 0) {
+            const badge = document.getElementById('real-quality-badge');
+            if (!badge) return;
+
+            let height = Number(forcedHeight || 0);
+
+            if (!height && videoPlayer) {
+                height = Number(videoPlayer.videoHeight || 0);
+            }
+
+            if (!height && hlsInstance && hlsInstance.levels?.length) {
+                const levelIndex =
+                    hlsInstance.currentLevel >= 0
+                        ? hlsInstance.currentLevel
+                        : hlsInstance.nextLevel >= 0
+                            ? hlsInstance.nextLevel
+                            : hlsInstance.loadLevel;
+
+                const level = hlsInstance.levels[levelIndex];
+                height = Number(level?.height || 0);
+            }
+
+            if (!height && shakaInstance) {
+                const activeTrack =
+                    shakaInstance.getVariantTracks().find(track => track.active);
+                height = Number(activeTrack?.height || 0);
+            }
+
+            badge.textContent = height ? `${height}p` : '--p';
+        }
+
+        videoPlayer.addEventListener('loadedmetadata', () => {
+            tv365UpdateRealQualityBadge();
+        });
+
+        videoPlayer.addEventListener('resize', () => {
+            tv365UpdateRealQualityBadge();
+        });
+
+        videoPlayer.addEventListener('playing', () => {
+            tv365UpdateRealQualityBadge();
+
+            setTimeout(() => {
+                tv365UpdateRealQualityBadge();
+            }, 800);
+
+            setTimeout(() => {
+                tv365UpdateRealQualityBadge();
+            }, 2000);
+        });
 
         // === Quality Selector Logic ===
         document.getElementById('quality-selector').addEventListener('change', (e) => {
