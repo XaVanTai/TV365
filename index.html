@@ -238,6 +238,10 @@ transform:scale(1.05);
             object-fit: contain;
         }
 
+        button[onclick="openAddDialog()"] {
+            display: none !important;
+        }
+
         .category-tab {
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             white-space: nowrap;
@@ -1471,7 +1475,18 @@ font-weight:700;
             }
             allChannels = channels;
             searchInput.value = '';
-            currentCategory = 'Tất cả';
+
+            // V7.11 TV: dựng menu nhóm trước và chỉ render đúng 1 nhóm đang chọn.
+            // Không dựng toàn bộ 230 kênh lúc khởi động.
+            if (__tvIsAndroidTv()) {
+                const firstGroup = allChannels
+                    .map(c => c.group || 'Khác')
+                    .find(Boolean);
+                currentCategory = firstGroup || 'Tất cả';
+            } else {
+                currentCategory = 'Tất cả';
+            }
+
             renderCategoryTabs();
             filterChannels();
         }
@@ -3311,6 +3326,10 @@ async function startTV365(forceRefresh = false) {
     const PLAYLIST =
         "https://raw.githubusercontent.com/TV365-VN/TV365-DATA/refs/heads/main/error.m3u";
 
+    // TV365 chỉ dùng nguồn cố định: ẩn nút + ngay từ đầu, kể cả khi boot bằng cache.
+    const btn = document.querySelector('button[onclick="openAddDialog()"]');
+    if (btn) btn.style.display = "none";
+
     // V7.8 Android TV: cache trước, remote trước, tải mới sau.
     // Không để playlist/EPG/update danh sách tranh tài nguyên 5-7 giây đầu.
     let tv365BootedFromCache = false;
@@ -3362,9 +3381,6 @@ async function startTV365(forceRefresh = false) {
             return;
         }
     }
-
-    const btn = document.querySelector('button[onclick="openAddDialog()"]');
-    if (btn) btn.style.display = "none";
 
     for (let attempt = 1; attempt <= 4; attempt++) {
         try {
