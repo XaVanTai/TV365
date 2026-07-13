@@ -1783,7 +1783,16 @@ font-weight:700;
                 if (!currentPlayingUrl || videoPlayer.ended) return;
 
                 if (__tvIsAndroidTv()) {
-                    tv365RecoverTvPlayback();
+                    if (videoPlayer.paused) {
+                        videoPlayer.play().catch(() => {
+                            const resumeWhenReady = () => {
+                                if (currentPlayingUrl && videoPlayer.paused && !videoPlayer.ended) {
+                                    videoPlayer.play().catch(() => {});
+                                }
+                            };
+                            videoPlayer.addEventListener('canplay', resumeWhenReady, { once: true });
+                        });
+                    }
                 } else if (videoPlayer.paused && videoPlayer.readyState >= 2) {
                     videoPlayer.play().catch(() => {});
                 }
@@ -2275,28 +2284,8 @@ font-weight:700;
                 window.tv365SctvWatchdog = null;
             }
 
-            if (tv365SctvTvMode) {
-                window.tv365SctvWatchdog = setInterval(() => {
-                    if (!currentPlayingUrl || currentPlayingUrl !== url || videoPlayer.ended) return;
-
-                    if (videoPlayer.paused || videoPlayer.readyState < 2) {
-                        tv365RecoverTvPlayback();
-                        return;
-                    }
-
-                    try {
-                        if (shakaInstance && shakaInstance.isLive && shakaInstance.isLive()) {
-                            const range = shakaInstance.seekRange();
-                            const drift = range.end - videoPlayer.currentTime;
-                            if (drift > 12) videoPlayer.currentTime = Math.max(range.start, range.end - 3);
-                        } else if (hlsInstance && videoPlayer.buffered.length) {
-                            const edge = videoPlayer.buffered.end(videoPlayer.buffered.length - 1);
-                            if (edge - videoPlayer.currentTime > 12) {
-                                videoPlayer.currentTime = Math.max(0, edge - 3);
-                            }
-                        }
-                    } catch (_) {}
-                }, 2000);
+            if (false && tv365SctvTvMode) {
+                // Đã tắt watchdog cũ: việc seek/recover mỗi 2 giây có thể làm Xiaomi TV tự pause.
             }
 
             // UI Update
@@ -2653,13 +2642,8 @@ font-weight:700;
 
                     // Shaka/SCTV watchdog: TV bị pause hoặc buffer thì tự phục hồi.
                     if (__tvIsAndroidTv()) {
-                        shakaInstance.addEventListener('buffering', (event) => {
-                            if (!event.buffering || !currentPlayingUrl) return;
-                            setTimeout(() => {
-                                if (!shakaInstance || !currentPlayingUrl) return;
-                                tv365RecoverTvPlayback();
-                            }, 700);
-                        });
+                        // Không ép play/seek trong lúc Shaka đang buffering.
+                        // Player tự giữ buffer; pause ngoài ý muốn vẫn được Auto Resume xử lý.
                     }
 
                     // Live stream handling
@@ -3683,14 +3667,20 @@ window.TV365_RESET_TV_FOCUS = function () {
         const key = e.key || '';
         const code = e.keyCode || e.which || 0;
 
+        // TV365 CH đa hãng - CHỈ bắt phím chuyển kênh chuyên dụng.
+        // Không dùng ArrowUp/ArrowDown/PageUp/PageDown để tránh nhầm với điều hướng menu.
+        const normalizedKey = String(key).toLowerCase();
+
         const channelUp =
-            key === 'ChannelUp' ||
-            key === 'PageUp' ||
+            normalizedKey === 'channelup' ||
+            normalizedKey === 'tvchannelup' ||
+            normalizedKey === 'channel_up' ||
             code === 166;
 
         const channelDown =
-            key === 'ChannelDown' ||
-            key === 'PageDown' ||
+            normalizedKey === 'channeldown' ||
+            normalizedKey === 'tvchanneldown' ||
+            normalizedKey === 'channel_down' ||
             code === 167;
 
         if (channelUp) {
