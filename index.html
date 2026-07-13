@@ -2781,16 +2781,16 @@ font-weight:700;
                     capLevelToPlayerSize: true,
 
                     // Android TV yếu: buffer vừa phải để vào kênh nhanh hơn và giảm áp lực RAM.
-                    backBufferLength: __tvIsAndroidTv() ? 15 : 30,
-                    maxBufferLength: __tvIsAndroidTv() ? 18 : 24,
-                    maxMaxBufferLength: __tvIsAndroidTv() ? 30 : 45,
-                    maxBufferSize: __tvIsAndroidTv() ? 30 * 1000 * 1000 : 60 * 1000 * 1000,
+                    backBufferLength: __tvIsAndroidTv() ? 8 : 30,
+                    maxBufferLength: __tvIsAndroidTv() ? 12 : 24,
+                    maxMaxBufferLength: __tvIsAndroidTv() ? 20 : 45,
+                    maxBufferSize: __tvIsAndroidTv() ? 20 * 1000 * 1000 : 60 * 1000 * 1000,
 
-                    liveSyncDurationCount: __tvIsAndroidTv() ? 3 : 4,
-                    liveMaxLatencyDurationCount: __tvIsAndroidTv() ? 8 : 10,
+                    liveSyncDurationCount: __tvIsAndroidTv() ? 4 : 4,
+                    liveMaxLatencyDurationCount: __tvIsAndroidTv() ? 10 : 10,
 
-                    maxBufferHole: __tvIsAndroidTv() ? 0.8 : 0.5,
-                    highBufferWatchdogPeriod: __tvIsAndroidTv() ? 4 : 3,
+                    maxBufferHole: 0.5,
+                    highBufferWatchdogPeriod: 3,
 
                     manifestLoadingMaxRetry: 4,
                     manifestLoadingRetryDelay: 500,
@@ -2894,7 +2894,10 @@ font-weight:700;
                         window.tv365AdaptiveTimer = setTimeout(() => {
                             if (!hlsInstance || currentPlayingUrl !== url) return;
 
-                            // VTV trên Android TV đã AUTO ổn định từ đầu: không ghi lại level giữa luồng.
+                            // V7 CLEAN: Android TV không ghi lại level giữa luồng.
+                            // Để Hls.js tự quản lý ABR, tránh nháy khi ép chuyển rendition.
+                            if (__tvIsAndroidTv()) return;
+
                             if (tv365FastVtvStart) return;
 
                             hlsInstance.currentLevel = -1;
@@ -3032,14 +3035,8 @@ font-weight:700;
                 hlsInstance.on(Hls.Events.ERROR, (event, data) => {
                     const adaptiveDetails = String(data?.details || "").toLowerCase();
 
-                    // VTV + Android TV: tránh recoverMediaError/startLoad lặp làm WebView Xiaomi treo cứng.
-                    // Frozen Frame Guard sẽ tải lại sạch đúng kênh nếu hình thật sự đứng ~12 giây.
-                    if (tv365IsTvVtv(channel) && data.fatal) {
-                        console.warn('[TV365 VTV TV] Fatal HLS error; chờ clean reload guard.', data.details);
-                        return;
-                    }
-
                     if (
+                        !__tvIsAndroidTv() &&
                         tv365AdaptiveProfile().lowDevice &&
                         Date.now() - tv365LastAdaptiveDownshift > 8000 &&
                         (
