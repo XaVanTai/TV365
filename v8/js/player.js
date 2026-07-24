@@ -9,7 +9,7 @@ function playChannel(channel) {
 
     const player = document.getElementById("player");
 
-    if (!player) return;
+    if (!player || !channel) return;
 
     // Hủy HLS cũ
     if (hls) {
@@ -17,18 +17,29 @@ function playChannel(channel) {
         hls = null;
     }
 
-    // Xóa nội dung cũ
+    // Dừng video cũ nếu có
+    const oldVideo = player.querySelector("video");
+    if (oldVideo) {
+        oldVideo.pause();
+        oldVideo.removeAttribute("src");
+        oldVideo.load();
+    }
+
+    // Xóa toàn bộ nội dung
     player.innerHTML = "";
 
     // Tạo video
     const video = document.createElement("video");
 
-    video.controls = true;
     video.autoplay = true;
+    video.controls = true;
     video.playsInline = true;
 
     video.style.width = "100%";
     video.style.height = "100%";
+    video.style.display = "block";
+    video.style.objectFit = "contain";
+    video.style.background = "#000";
 
     player.appendChild(video);
 
@@ -36,17 +47,16 @@ function playChannel(channel) {
     const title = document.createElement("div");
 
     title.className = "player-title";
-    title.innerText = channel.name;
+    title.textContent = channel.name || "";
 
     player.appendChild(title);
 
-    // Phát HLS
+    // Nếu hỗ trợ HLS.js
     if (Hls.isSupported()) {
 
         hls = new Hls({
 
             enableWorker: true,
-
             lowLatencyMode: true
 
         });
@@ -55,26 +65,42 @@ function playChannel(channel) {
 
         hls.attachMedia(video);
 
+        hls.on(Hls.Events.MEDIA_ATTACHED, function () {
+
+            console.log("MEDIA ATTACHED");
+
+        });
+
         hls.on(Hls.Events.MANIFEST_PARSED, function () {
 
-            video.play().catch(function (e) {
+            video.play().catch(function (err) {
 
-                console.log(e);
+                console.log(err);
 
             });
 
         });
 
+        hls.on(Hls.Events.ERROR, function (event, data) {
+
+            console.log("HLS ERROR", data);
+
+        });
+
     }
 
-    // Safari / Android hỗ trợ HLS trực tiếp
+    // Safari / iPhone
     else if (video.canPlayType("application/vnd.apple.mpegurl")) {
 
         video.src = channel.url;
 
         video.addEventListener("loadedmetadata", function () {
 
-            video.play();
+            video.play().catch(function (err) {
+
+                console.log(err);
+
+            });
 
         });
 
